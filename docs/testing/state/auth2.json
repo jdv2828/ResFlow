@@ -1,0 +1,25 @@
+{
+  "cookies": [
+    {
+      "name": "XSRF-TOKEN",
+      "value": "eyJpdiI6InJ5MWE1ZmtjbUJCZFQyK1FzSjRUQXc9PSIsInZhbHVlIjoidjBHN1dtMlVEejVLZE40YzlVeGxqZ09NaVlZN1UwcEcwMVJVU29FQ1BwQkhVRmM1SGxsQVV6a3YrZEpRSnZxT3FpWjg0K2RxQWFjR0Rsbm10RjRsT3VFT2VWSnlxb2xQTkV3dWs1VXY2K3ZpTkY4RE5pUjZQdldDanh3L2M3d0IiLCJtYWMiOiIxYTljZmY2M2IyYjFlZWQyMzgwODk1MWQxNTYyMGExZjEzZmU4ZDU3NWEwNjNjM2MxNTM0ZDVlOTRlYmEzZDYyIiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1787863954.799881,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "laravel_session",
+      "value": "eyJpdiI6IkNZQU9mdFlmYUdmaFE5MkdjeUtueEE9PSIsInZhbHVlIjoiSG5RL0R3UjZhNFNuTWRJUFNOY0xGYWFSTXVab3IvSWUreURKQnROMVQzZmpXN1A0QXpvNzl6clRqUlp1MDVSZzdLQ1VYQkhlbmc5UExRaHFNWWhZdlMxNlJZSnZnS0Q1TXNtcW80VHdJa1l0L2J2SDQzQm1IZHB0UEZuUVo2djYiLCJtYWMiOiI3ODFmMjAwZjhmYjViZWRhNzlhNTI2ZGFmYjliZmUxYjcxMTk3OTI2YmM5Y2VlNDAyYTNhOTI4ZWZiNTJlZDQ1IiwidGFnIjoiIn0%3D",
+      "domain": "127.0.0.1",
+      "path": "/",
+      "expires": 1787863954.800081,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}
