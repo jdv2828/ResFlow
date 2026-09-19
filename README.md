@@ -1,251 +1,100 @@
-# ResourceFlow — Sistema de Gestión de Recursos
+# ResFlow — Resource & Fuel Management System
 
-> Sistema institucional para gestión de recursos, personal y vehículos, con control de inventario y asignación por centros de costo.
+> Institutional resource management: cost centers, personnel, vehicles, fuel inventory, and controlled voucher (ticket) flows with strict accounting, pessimistic locking, and domain events.
 
-## Contexto
+## What this project demonstrates
 
-ResourceFlow es un sistema de gestión de recursos que administra:
-
-- **Centros de Costo** — áreas/departamentos de la organización (por ejemplo: Obras, Logística, Administración)
-- **Personal** — empleados asignados a un centro de costo
-- **Vehículos** — unidades asignadas a un centro de costo, con chofer
-- **Recursos** — combustible y otros insumos (aceites, lubricantes, refrigerantes)
-- **Tickets (Vales)** — comprobantes que descuentan litros del inventario de un centro de costo
-- **Lotes** — plantillas para generar vales en masa
-
-### Flujo principal
-
-```
-1. Un centro de costo compra combustible → se crea un Recurso
-2. Personal y vehículos se asignan al centro de costo
-3. Se emiten Tickets que descuentan litros del recurso del centro de costo
-4. Los tickets se consumen, anulan o vencen → la contabilidad se recalcula
-5. Todo queda auditado en el timeline de actividad
-```
+- **Hybrid Clean Architecture**: classic Laravel MVC for simple CRUD (personnel, vehicles, cost centers) + real DDD modules for the complex domains (Tickets, Recurso, Lote) — entities, value objects, repository contracts, domain events.
+- **Pessimistic locking** (`SELECT ... FOR UPDATE`) that prevents negative fuel stock when multiple users issue vouchers concurrently.
+- **Domain events** decoupling audit and automatic fuel rebalancing (Open/Closed Principle) — every action is recorded in an activity timeline without controllers touching logs.
+- **Architecture Decision Records (ADRs)** documenting the real tradeoffs (cost center as root entity, pessimistic vs optimistic locking, event-based audit).
+- **31 tests** across feature, unit, and browser (Dusk) layers.
 
 ## Stack
 
-| Capa | Tecnología |
-|------|-----------|
-| Lenguaje | PHP 8.1+ |
+| Layer | Technology |
+|-------|------------|
+| Language | PHP 8.1+ |
 | Framework | Laravel 10 |
 | Auth | Fortify + Sanctum + Spatie Permission |
-| Frontend | Blade + Alpine.js + Tailwind CSS + Vite |
-| Database | MySQL 8 |
+| Frontend | Blade + Alpine.js + Tailwind CSS + Vite (assets prebuilt) |
+| Database | SQLite (quick demo) / MySQL 8 (production) |
 | PDF/Excel | DOMPDF, Laravel Excel |
 
-## Arquitectura
-
-El proyecto usa **Clean Architecture híbrida**: CRUD simples en el MVC clásico de Laravel, lógica de negocio compleja en un kernel modular con DDD.
-
-```mermaid
-graph TB
-    subgraph "Frontend"
-        A[Blade Views]
-        B[Alpine.js]
-        C[Tailwind CSS]
-    end
-
-    subgraph "HTTP Layer"
-        D[Controllers - app/Http]
-        E[DDD Controllers - src/Modules/*/Infrastructure/Http]
-    end
-
-    subgraph "Application Layer"
-        F[Services - app/Http/Services]
-        G[DDD Services - src/Modules/*/Application/Services]
-        H[DTOs - src/Modules/*/Application/Dtos]
-    end
-
-    subgraph "Domain Layer"
-        I[Entities - src/Modules/*/Domain/Entities]
-        J[Value Objects - src/Modules/*/Domain/ValueObjects]
-        K[Events - src/Modules/*/Domain/Events]
-        L[Contracts - src/Modules/*/Domain/Contracts]
-    end
-
-    subgraph "Infrastructure Layer"
-        M[Eloquent Models - app/Models]
-        N[Repositories - src/Modules/*/Infrastructure/Repositories]
-        O[Listeners - src/Modules/*/Infrastructure/Listeners]
-    end
-
-    A --> D
-    A --> E
-    D --> F
-    E --> G
-    G --> H
-    G --> I
-    G --> L
-    G --> K
-    I --> J
-    N --> M
-    N --> L
-    K --> O
-```
-
-### Módulos DDD
-
-```
-src/Modules/
-├── ActivityLog/    → Auditoría y timeline de actividad
-├── Bolsa/          → Contabilidad de litros por recurso
-├── Lote/           → Generación masiva de tickets
-├── Recurso/        → Gestión de inventario de combustible
-├── Tickets/        → Emisión, edición, anulación de vales
-└── ServicesProviders/ → EventServiceProvider
-```
-
-### Decisiones de diseño
-
-**¿Por qué DDD solo para módulos complejos?**
-
-El CRUD de Personal, Vehículos y Centro de Costo se mantiene en el MVC clásico de Laravel porque la lógica es straightforward. Los módulos de Tickets, Recurso y Lote migraron a Clean Architecture/DDD porque tienen:
-
-- Contabilidad estricta de litros (un recurso no puede quedar negativo)
-- Lock pesimista en ediciones para evitar race conditions
-- Eventos de dominio para desacoplar auditoría y rebalanceo
-- Repository patterns con contratos
-
-**¿Por qué eventos de dominio?**
-
-Cada acción importante (TicketWasCreated, TicketWasUpdated, TicketWasDeleted, LoteWasGenerated) dispara un evento que registra la actividad automáticamente. Esto permite agregar comportamiento sin modificar el servicio original (Open/Closed Principle).
-
-**¿Por qué rebalanceo automático?**
-
-Cuando un ticket se emite, consume litros de un recurso. Cuando se anula, devuelve litros. El `RebalanceRecursosService` redistribuye automáticamente los litros entre los recursos disponibles de una estación y combustible, evitando que un recurso se quede vacío mientras otro tiene stock.
-
-## Decisiones de Arquitectura (ADR)
-
-### ADR-001: Centro de Costo como entidad raíz
-
-**Contexto:** El sistema maneja una organización donde cada área tiene su propio presupuesto de combustible.
-
-**Decisión:** `centro_costo_id` aparece en Personal, Vehículos, Recursos y Tickets.
-
-**Trade-off:** Un empleado de un centro de costo puede usar un vehículo asignado a otro centro de costo, y el vale se descuenta del centro del vehículo. Esto es intencional porque los vehículos se mueven entre áreas.
-
-**Estado:** Pendiente de validación con el stakeholder sobre si se debe reforzar coherencia entre vehículo y personal.
-
-### ADR-002: Contabilidad con lock pesimista
-
-**Contexto:** Múltiples usuarios pueden emitir tickets simultáneamente para el mismo recurso, riesgo de litros negativos.
-
-**Decisión:** Usar `SELECT ... FOR UPDATE` (lock pesimista) al emitir o editar tickets, dentro de un `DB::transaction`.
-
-**Alternativa descartada:** Lock optimista (reintentar en conflicto) — demasiado complejo para el caso de uso de una organización con pocos usuarios concurrentes.
-
-### ADR-003: Eventos de dominio para auditoría
-
-**Contexto:** Cada acción (crear, editar, anular, consumir, vencer un ticket) debe quedar registrada con quién, cuándo y qué cambió.
-
-**Decisión:** Un solo listener `RecordActivityListener` maneja todos los eventos y guarda en `activity_logs`. Los controllers no manipulan logs directamente.
-
-**Beneficio:** Separación de responsabilidades — el servicio no sabe que hay auditoría, el listener no sabe cómo se creó el ticket.
-
-## Quick Start
-
-### Con Docker (recomendado)
-
-```bash
-cp .env.example .env
-docker compose up -d
-php artisan key:generate
-php artisan migrate
-php artisan db:seed
-npm install && npm run dev
-```
-
-### Sin Docker
+## Quick start (fastest demo — SQLite, no Docker needed)
 
 ```bash
 composer install
 cp .env.example .env
 php artisan key:generate
-php artisan migrate
-php artisan db:seed
-npm install && npm run dev
+php artisan migrate --seed
 php artisan serve
 ```
 
-### Credenciales por defecto
+Open `http://localhost:8000` and log in with the demo credentials below. Frontend assets are already built and committed, so no `npm install` is required to run the demo.
 
-| Usuario | Contraseña | Rol |
-|---------|-----------|-----|
-| admin@admin.com | secret | Administrador |
+### Alternative: Docker
+
+```bash
+cp .env.example .env
+docker compose up -d
+php artisan key:generate
+php artisan migrate --seed
+```
+
+## Demo credentials
+
+| User | Password | Role |
+|------|----------|------|
+| admin@admin.com | secret | Administrator |
+
+## What you can try
+
+1. **Log in** as `admin@admin.com` / `secret`.
+2. **Create a cost center** and assign personnel / vehicles to it.
+3. **Create a fuel resource** for the cost center.
+4. **Issue a ticket (voucher)** — watch the liters deduct from the resource.
+5. **Cancel a ticket** — watch the liters return and the activity timeline record it.
+6. **Generate a batch (Lote)** of tickets in bulk.
+
+Every action is audited in the activity timeline — that is the system's core guarantee.
+
+## Architecture overview
+
+The domain logic lives in a modular kernel under `src/Modules/`:
+
+```
+src/Modules/
+├── ActivityLog/    → Audit & activity timeline
+├── Bolsa/          → Fuel accounting per resource (liters)
+├── Lote/           → Bulk voucher generation
+├── Recurso/        → Fuel inventory management
+├── Tickets/        → Voucher issuance, editing, cancellation
+└── ServicesProviders/ → EventServiceProvider
+```
+
+Design decisions (see the ADRs in the repo for full context):
+
+- **Cost center as root entity** — `centro_costo_id` appears across personnel, vehicles, resources, and tickets; a vehicle may use another center's fuel intentionally.
+- **Pessimistic locking for accounting** — `SELECT ... FOR UPDATE` inside a transaction prevents negative liters under concurrency; optimistic locking was rejected as overkill for this concurrency profile.
+- **Domain events for audit** — one `RecordActivityListener` handles all events; services don't know about the audit trail (Open/Closed).
 
 ## Tests
 
 ```bash
-# Ejecutar todos los tests
-php artisan test
-
-# Ejecutar tests con coverage
-php artisan test --coverage
-
-# Ejecutar un archivo específico
+php artisan test                # all tests
+php artisan test --coverage     # with coverage
 php artisan test tests/Feature/TicketFeatureTest.php
 ```
 
-### Cobertura de tests
+Coverage: ticket issuance/editing/cancellation/expiry + accounting, resource creation/rebalancing, batch generation, CSV export, migration integrity.
 
-| Capa | Tests | Qué cubren |
-|------|-------|-----------|
-| Tickets | Feature tests | Emisión, edición, anulación, vencimiento, contabilidad |
-| Recursos | Feature tests | Creación, rebalanceo, litros disponibles |
-| Lotes | Feature tests | Generación masiva, empleados manuales |
-| Reportes | Feature tests | Exportación CSV de emitidos/consumidos |
-| Bolsa | Unit tests | Descuento de litros, validación negativa |
-| Migraciones | Feature tests | Integridad de esquema y FK |
+## Known limitations
 
-## Estructura del proyecto
+- **`migrate:rollback` is not supported** — the schema is consolidated in the original `CREATE` migrations; use `migrate:fresh` for clean reinstalls.
+- **Tests run against a dedicated test schema** — verify it exists before running `php artisan test`.
+- Only migrations added in recent changes are reversible.
 
-```
-├── app/                        → Laravel clásico
-│   ├── Console/Commands        → Comandos artisan
-│   ├── Exports                 → Exportaciones Excel/CSV
-│   ├── Http/Controllers        → CRUD simples (Personal, Vehículos, Centro Costo)
-│   ├── Http/Requests           → Validación de formularios
-│   ├── Listeners               → Listeners de eventos legacy
-│   ├── Models                  → Modelos Eloquent
-│   └── Presenters              → Formateo de datos (ActivityLog)
-├── database/
-│   ├── factories               → Factories para tests
-│   ├── migrations              → Migraciones de la DB
-│   └── seeders                 → Datos iniciales (roles, permisos, personal)
-├── resources/views/            → Blade templates
-├── routes/                     → Rutas web
-├── src/                        → Kernel modular (DDD)
-│   ├── Modules/
-│   │   ├── ActivityLog/        → Auditoría y timeline
-│   │   ├── Bolsa/              → Contabilidad de litros
-│   │   ├── Lote/               → Generación masiva de tickets
-│   │   ├── Recurso/            → Inventario de combustible
-│   │   ├── Tickets/            → Emisión y gestión de vales
-│   │   └── ServicesProviders/  → EventServiceProvider
-│   └── Shared/                 → Contratos compartidos
-└── tests/
-    ├── Feature/                → Tests de integración
-    ├── Unit/                   → Tests unitarios
-    └── Browser/                → Tests Dusk (E2E)
-```
+## License
 
-## Stack de desarrollo
-
-- **PHP 8.1+** / **Laravel 10**
-- **MySQL 8** (producción) / **SQLite** (tests Dusk)
-- **PHPUnit 10** + **Laravel Dusk**
-- **Blade** + **Alpine.js** + **Tailwind CSS** + **Vite**
-- **Spatie Permission** para roles y permisos
-- **DOMPDF** para generación de PDFs
-- **Laravel Excel** para exportaciones
-
-## Limitaciones Conocidas
-
-- **`migrate:rollback` no es soportado** — Hay 10 migraciones de consolidación sin operaciones reversibles. El esquema queda consolidado en los `CREATE` originales. Usar `migrate:fresh` o `db:wipe && migrate` para reinstalaciones y rollbacks limpios.
-- **Tests corren contra un schema dedicado `fuelpass_test`** — Local: MySQL 127.0.0.1:3307. CI: MySQL 3306. Verificar que el schema de pruebas exista antes de correr tests (`php artisan test`).
-- Solo las migraciones añadidas en este cambio son reversibles (columnas dropeables y unique constraint).
-
-## Licencia
-
-Proyecto de gestión de recursos — demo/portfolio.
+Demo/portfolio project.
