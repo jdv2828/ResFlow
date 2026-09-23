@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'ResourceFlow — Gestión de Recursos')</title>
+    <title>@yield('title', 'ResFlow — Gestión de Recursos')</title>
     <link rel="icon" href="/img/resourceflow-icon.svg">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>[x-cloak] { display: none !important; }</style>
@@ -31,7 +31,7 @@
         <div class="h-16 flex items-center px-4 border-b border-white/20 flex-shrink-0">
             <a href="{{ route('home') }}" class="flex items-center gap-3">
                 <img class="h-10 w-auto" src="/img/resourceflow-icon.svg" alt="Logo">
-                <span class="text-white font-bold text-lg">ResourceFlow</span>
+                <span class="text-white font-bold text-lg">ResFlow</span>
             </a>
         </div>
 

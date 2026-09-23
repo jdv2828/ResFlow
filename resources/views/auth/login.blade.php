@@ -5,8 +5,8 @@
     {{-- Left: Brand panel --}}
     <div class="hidden lg:flex lg:w-1/2 bg-brand-blue flex-col items-center justify-center px-12 py-16 text-white">
         <div class="max-w-md text-center">
-            <img src="/img/resourceflow-icon.svg" alt="ResourceFlow Logo" class="h-24 w-auto mx-auto mb-6">
-            <h1 class="text-4xl font-bold mb-4">ResourceFlow</h1>
+            <img src="/img/resourceflow-icon.svg" alt="ResFlow Logo" class="h-24 w-auto mx-auto mb-6">
+            <h1 class="text-4xl font-bold mb-4">ResFlow</h1>
             <p class="text-xl text-white/80">Gestión de Recursos</p>
         </div>
     </div>
@@ -15,8 +15,8 @@
     <div class="w-full lg:w-1/2 flex items-center justify-center px-8 py-16 bg-white">
         <div class="w-full max-w-md">
             <div class="text-center lg:hidden mb-8">
-                <img src="/img/resourceflow-icon.svg" alt="ResourceFlow Logo" class="h-16 w-auto mx-auto mb-2">
-                <h1 class="text-2xl font-bold text-gray-900">ResourceFlow</h1>
+                <img src="/img/resourceflow-icon.svg" alt="ResFlow Logo" class="h-16 w-auto mx-auto mb-2">
+                <h1 class="text-2xl font-bold text-gray-900">ResFlow</h1>
                 <p class="text-sm text-gray-500">Gestión de Recursos</p>
             </div>
 

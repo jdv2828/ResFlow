@@ -21,7 +21,7 @@
                 </div>
                 <div>
                     <h2 class="text-center text-3xl font-extrabold text-gray-900">
-                        ResourceFlow — Gestión de Recursos
+                        ResFlow — Gestión de Recursos
                     </h2>
                 </div>
                 <div class="space-y-4">

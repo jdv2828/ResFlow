@@ -109,7 +109,7 @@
 
 {{-- Marca de agua de fondo --}}
 <div class="watermark">
-    <img src="./img/resourceflow-icon.svg" alt="ResourceFlow">
+    <img src="./img/resourceflow-icon.svg" alt="ResFlow">
 </div>
 
 {{-- Encabezado --}}
@@ -187,7 +187,7 @@
 
 {{-- Footer --}}
 <div class="footer">
-    ResourceFlow &mdash; Generado el {{ now()->format('d/m/Y H:i') }}
+    ResFlow &mdash; Generado el {{ now()->format('d/m/Y H:i') }}
 </div>
 
 </body>

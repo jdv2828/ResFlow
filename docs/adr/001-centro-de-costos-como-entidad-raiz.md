@@ -6,7 +6,7 @@
 
 ## Contexto
 
-ResourceFlow gestiona vales de recursos para una organización. El sistema tiene una entidad "Centro de Costo" que representa las áreas/departamentos (por ejemplo: Obras, Logística, Administración, etc.).
+ResFlow gestiona vales de recursos para una organización. El sistema tiene una entidad "Centro de Costo" que representa las áreas/departamentos (por ejemplo: Obras, Logística, Administración, etc.).
 
 `centro_costo_id` aparece en cuatro entidades:
 
